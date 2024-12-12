@@ -28,7 +28,7 @@ def config():
 
     batch_size = 8
     sequence_length = 327680
-    model_complexity = 48
+    model_complexity = 64
 
     if torch.cuda.is_available() and torch.cuda.get_device_properties(torch.cuda.current_device()).total_memory < 10e9:
         batch_size //= 2
