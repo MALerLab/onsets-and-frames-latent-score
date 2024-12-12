@@ -7,7 +7,6 @@ curl -O https://storage.googleapis.com/magentadata/datasets/maestro/v1.0.0/maest
 echo Extracting the files ...
 unzip -o maestro-v1.0.0.zip | awk 'BEGIN{ORS=""} {print "\rExtracting " NR "/2383 ..."; system("")} END {print "\ndone\n"}'
 
-rm maestro-v1.0.0.zip
 mv maestro-v1.0.0 MAESTRO
 
 echo Converting the audio files to FLAC ...
