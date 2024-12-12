@@ -8,6 +8,8 @@ import torch
 import torch.nn.functional as F
 from torch import nn
 
+from x_transformers import Encoder
+
 from .lstm import BiLSTM
 from .mel import melspectrogram
 
@@ -125,3 +127,31 @@ class OnsetsAndFrames(nn.Module):
         else:
             return (onset_label * (velocity_label - velocity_pred) ** 2).sum() / denominator
 
+class OnsetsAndFramesTF(OnsetsAndFrames):
+    def __init__(self, input_features, output_features, depth=2, heads=4, model_complexity=64):
+        super().__init__(input_features, output_features, model_complexity)
+        model_size = model_complexity * 16
+        sequence_model = lambda input_size, depth, heads: Encoder(dim=input_size, depth=depth, heads=heads)
+
+        self.main_stack = nn.Sequential(
+            ConvStack(input_features, model_size),
+            sequence_model(model_size, depth, heads),
+            nn.Linear(model_size, output_features * 4)
+        )
+        
+        del self.onset_stack, self.offset_stack, self.frame_stack, self.combined_stack, self.velocity_stack
+
+    def forward(self, mel):
+        pred = self.main_stack(mel)
+        pred = pred.reshape(-1, pred.size(-1) // 4, 4)
+        onset_pred, offset_pred, frame_pred, velocity_pred = pred.split(1, dim=-1)
+        onset_pred = onset_pred.squeeze(-1)
+        offset_pred = offset_pred.squeeze(-1)
+        velocity_pred = velocity_pred.squeeze(-1)
+        frame_pred = frame_pred.squeeze(-1)
+        
+        onset_pred = onset_pred.sigmoid()
+        offset_pred = offset_pred.sigmoid()
+        frame_pred = frame_pred.sigmoid()
+        
+        return onset_pred, offset_pred, frame_pred, frame_pred, velocity_pred
