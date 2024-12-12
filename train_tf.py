@@ -23,7 +23,7 @@ def config():
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     iterations = 500000
     resume_iteration = None
-    checkpoint_interval = 1000
+    checkpoint_interval = 5000
     train_on = 'MAESTRO'
 
     batch_size = 8
@@ -111,5 +111,10 @@ def train(logdir, device, iterations, resume_iteration, checkpoint_interval, tra
             model.train()
 
         if i % checkpoint_interval == 0:
-            torch.save(model, os.path.join(logdir, f'model-{i}.pt'))
+            try:
+                torch.save(model, os.path.join(logdir, f'model-{i}.pt'))
+            except Exception as e:
+                print(e)
+                torch.save(model.state_dict(), os.path.join(logdir, f'model-{i}.pt'))
             torch.save(optimizer.state_dict(), os.path.join(logdir, 'last-optimizer-state.pt'))
+
