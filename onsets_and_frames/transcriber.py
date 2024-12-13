@@ -127,6 +127,27 @@ class OnsetsAndFrames(nn.Module):
         else:
             return (onset_label * (velocity_label - velocity_pred) ** 2).sum() / denominator
 
+class SinusPosEncoding(nn.Module):
+  def __init__(self, emb_size, max_t):
+    super().__init__()
+    self.emb_size =emb_size
+    self.max_t = max_t
+    self.register_buffer('encoding', self._prepare_emb())
+
+  def _prepare_emb(self):
+    dim_axis = 10000**(torch.arange(self.emb_size//2) * 2 / self.emb_size) # 10000 ** (normalized values between 0~1 num_emb_dim)
+    timesteps = torch.arange(self.max_t)
+    pos_enc_in = timesteps.unsqueeze(1) / dim_axis.unsqueeze(0)
+    pos_enc_sin = torch.sin(pos_enc_in) # x values for sin are between 0 ~ 1 so the values could never be the same
+    pos_enc_cos = torch.cos(pos_enc_in)
+
+    pos_enc = torch.stack([pos_enc_sin, pos_enc_cos], dim=-1).reshape([self.max_t, self.emb_size])
+    return pos_enc
+
+  def forward(self, x):
+    x_t = x.shape[1]
+    return x + self.encoding[:x_t, ...]
+
 class OnsetsAndFramesTF(OnsetsAndFrames):
     def __init__(self, input_features, output_features, depth=2, heads=4, model_complexity=64):
         super().__init__(input_features, output_features, model_complexity)
@@ -135,6 +156,7 @@ class OnsetsAndFramesTF(OnsetsAndFrames):
 
         self.main_stack = nn.Sequential(
             ConvStack(input_features, model_size),
+            SinusPosEncoding(model_size, 3000),
             sequence_model(model_size, depth, heads),
             nn.Linear(model_size, output_features * 4)
         )
