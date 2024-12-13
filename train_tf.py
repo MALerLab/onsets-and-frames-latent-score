@@ -114,7 +114,8 @@ def train(logdir, device, iterations, resume_iteration, checkpoint_interval, tra
             try:
                 torch.save(model, os.path.join(logdir, f'model-{i}.pt'))
             except Exception as e:
-                print(e)
+                print("\n\n", e, "\n\n")
+                print("Saving model state dict instead\n\n")
                 torch.save(model.state_dict(), os.path.join(logdir, f'model-{i}.pt'))
             torch.save(optimizer.state_dict(), os.path.join(logdir, 'last-optimizer-state.pt'))
 

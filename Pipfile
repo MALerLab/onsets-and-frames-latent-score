@@ -7,15 +7,15 @@ name = "pypi"
 scipy = ">=1.1.0"
 torch = ">=1.2.0"
 soundfile = ">=0.10.2"
+sacred = "==0.8.7"
 librosa = ">=0.6.2"
 numpy = ">=1.15.0"
 tqdm = ">=4.28.1"
 mir-eval = {git = "https://github.com/craffel/mir_eval.git"}
 mido = ">=1.2.9"
 pillow = ">=6.2.0"
-x-transformers = "*"
-sacred = "==0.8.7"
 tensorboard = "*"
+x-transformers = "*"
 
 [dev-packages]
 ipykernel = "*"
