@@ -21,9 +21,9 @@ ex = Experiment('train_transcriber')
 def config():
     logdir = 'runs/transcriber-' + datetime.now().strftime('%y%m%d-%H%M%S')
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
-    iterations = 500000
+    iterations = 150000
     resume_iteration = None
-    checkpoint_interval = 5000
+    checkpoint_interval = 1000
     train_on = 'MAESTRO'
 
     batch_size = 8
@@ -75,7 +75,7 @@ def train(logdir, device, iterations, resume_iteration, checkpoint_interval, tra
     loader = DataLoader(dataset, batch_size, shuffle=True, drop_last=True)
 
     if resume_iteration is None:
-        model = OnsetsAndFramesTF(N_MELS, MAX_MIDI - MIN_MIDI + 1, depth=2, heads=4, model_complexity=model_complexity).to(device)
+        model = OnsetsAndFramesTF(N_MELS, MAX_MIDI - MIN_MIDI + 1, depth=2, heads=16, attn_dropout=0.1, ff_dropout=0.1, model_complexity=model_complexity).to(device)
         optimizer = torch.optim.Adam(model.parameters(), learning_rate)
         resume_iteration = 0
     else:

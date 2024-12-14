@@ -149,24 +149,25 @@ class SinusPosEncoding(nn.Module):
     return x + self.encoding[:x_t, ...]
 
 class OnsetsAndFramesTF(OnsetsAndFrames):
-    def __init__(self, input_features, output_features, depth=2, heads=4, model_complexity=64):
+    def __init__(self, input_features, output_features, depth=2, heads=16, attn_dropout=0.1, ff_dropout=0.1, model_complexity=64):
         super().__init__(input_features, output_features, model_complexity)
         model_size = model_complexity * 16
-        sequence_model = lambda input_size, depth, heads: Encoder(dim=input_size, depth=depth, heads=heads)
-
-        self.main_stack = nn.Sequential(
-            ConvStack(input_features, model_size),
-            SinusPosEncoding(model_size, 3000),
-            sequence_model(model_size, depth, heads),
-            nn.Linear(model_size, output_features * 4)
-        )
+        sequence_model = lambda input_size, depth, heads: Encoder(dim=input_size, depth=depth, heads=heads, attn_dropout=attn_dropout, ff_dropout=ff_dropout, attn_flash=True)
+        
+        self.conv = ConvStack(input_features, model_size)
+        self.pos_enc = SinusPosEncoding(model_size, 3000)
+        self.seq_model = sequence_model(model_size, depth, heads)
+        self.fc = nn.Linear(model_size, output_features * 4)
         
         del self.onset_stack, self.offset_stack, self.frame_stack, self.combined_stack, self.velocity_stack
 
     def forward(self, mel):
-        pred = self.main_stack(mel)
-        pred = pred.reshape(-1, pred.size(-1) // 4, 4)
-        onset_pred, offset_pred, frame_pred, velocity_pred = pred.split(1, dim=-1)
+        x = self.conv(mel)
+        x = self.pos_enc(x)
+        x = self.seq_model(x)
+        x = self.fc(x)
+        x = x.reshape(-1, x.size(-1) // 4, 4)
+        onset_pred, offset_pred, frame_pred, velocity_pred = x.split(1, dim=-1)
         onset_pred = onset_pred.squeeze(-1)
         offset_pred = offset_pred.squeeze(-1)
         velocity_pred = velocity_pred.squeeze(-1)
