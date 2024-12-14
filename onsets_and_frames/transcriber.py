@@ -155,16 +155,16 @@ class OnsetsAndFramesTF(OnsetsAndFrames):
         sequence_model = lambda input_size, depth, heads: Encoder(dim=input_size, depth=depth, heads=heads, attn_dropout=attn_dropout, ff_dropout=ff_dropout, attn_flash=True)
         
         self.conv = ConvStack(input_features, model_size)
-        self.pos_enc = SinusPosEncoding(model_size, 3000)
-        self.seq_model = sequence_model(model_size, depth, heads)
+        self.enc_pos_enc = SinusPosEncoding(model_size, 3000)
+        self.transformer = sequence_model(model_size, depth, heads)
         self.fc = nn.Linear(model_size, output_features * 4)
         
         del self.onset_stack, self.offset_stack, self.frame_stack, self.combined_stack, self.velocity_stack
 
     def forward(self, mel):
         x = self.conv(mel)
-        x = self.pos_enc(x)
-        x = self.seq_model(x)
+        x = self.enc_pos_enc(x)
+        x = self.transformer(x)
         x = self.fc(x)
         x = x.reshape(-1, x.size(-1) // 4, 4)
         onset_pred, offset_pred, frame_pred, velocity_pred = x.split(1, dim=-1)
